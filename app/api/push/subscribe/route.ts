@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireDeviceId();
-    const body = (await request.json()) as { endpoint: string; keys: { p256dh: string; auth: string } };
+    const body = (await request.json()) as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
     if (!body.endpoint || !body.keys?.p256dh || !body.keys?.auth) {
       return Response.json({ error: "Invalid subscription" }, { status: 400 });
     }

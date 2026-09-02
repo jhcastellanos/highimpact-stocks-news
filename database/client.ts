@@ -9,7 +9,12 @@ let dbInstance: ReturnType<typeof drizzle<typeof schema>> | null = null;
 export function getDb() {
   if (dbInstance) return dbInstance;
   const url = requireDatabaseUrl();
-  client = postgres(url, { max: 4, prepare: false });
+  const local = url.includes("localhost") || url.includes("127.0.0.1");
+  client = postgres(url, {
+    max: 1,
+    prepare: false,
+    ssl: local ? false : "require",
+  });
   dbInstance = drizzle(client, { schema });
   return dbInstance;
 }
