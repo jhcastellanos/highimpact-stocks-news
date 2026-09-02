@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { DEVICE_COOKIE } from "@/lib/device-cookie";
+
+const DEVICE_COOKIE = "mi_device";
 
 export function middleware(request: NextRequest) {
   const response = NextResponse.next();
