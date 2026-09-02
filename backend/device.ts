@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
+import { DEVICE_COOKIE } from "@/lib/device-cookie";
 
-export const DEVICE_COOKIE = "mi_device";
+export { DEVICE_COOKIE };
 
 export async function getDeviceId(): Promise<string | null> {
   const store = await cookies();
