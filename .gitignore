@@ -13,12 +13,17 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
+# TypeScript
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
 # Node
 node_modules/
 dist/
 build/
 .next/
 .turbo/
+out/
 
 # OS and editors
 .DS_Store
@@ -28,3 +33,6 @@ build/
 
 # Deploy
 .vercel
+
+# Drizzle
+database/migrations/meta
