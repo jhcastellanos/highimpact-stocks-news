@@ -35,13 +35,13 @@ function rssAdapter(id: SourceId, urlFromEnv: () => string): NewsAdapter {
             : (linkRaw as { href?: string } | undefined)?.href ?? url;
         const published = String(entry.pubDate ?? entry.updated ?? entry.published ?? retrievedAt.toISOString());
         const summary = String(entry.description ?? entry.summary ?? "");
-        const tickerMatch = `${headline} ${summary}`.match(/\b[A-Z]{1,5}\b/);
+        const ticker = tickerFromWire(`${headline} ${summary}`);
         return {
           source: id,
           sourceUrl,
           publishedAt: new Date(published),
           retrievedAt,
-          ticker: tickerMatch?.[0] ?? null,
+          ticker,
           company: null,
           cik: null,
           headline,
@@ -55,6 +55,11 @@ function rssAdapter(id: SourceId, urlFromEnv: () => string): NewsAdapter {
       });
     },
   };
+}
+
+function tickerFromWire(text: string): string | null {
+  const listed = text.match(/\((?:Nasdaq|NASDAQ|NYSE(?:\s+American|\s+Arca)?):\s*([A-Z]{1,5})\)/);
+  return listed?.[1] ?? null;
 }
 
 export const globeNewswireAdapter = rssAdapter("globenewswire", () => getEnv().globeNewswireRssUrl);

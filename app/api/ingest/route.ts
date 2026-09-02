@@ -10,8 +10,9 @@ export async function POST(request: NextRequest) {
   try {
     const quick = request.nextUrl.searchParams.get("quick") === "1";
     const result = await runIngest({
-      maxFilings: quick ? 8 : 20,
+      maxFilings: quick ? 12 : 20,
       includeOptionalSources: !quick,
+      includeForm4: !quick,
     });
     const pushes = await flushPendingPushes();
     return Response.json({ ok: true, result, pushes });

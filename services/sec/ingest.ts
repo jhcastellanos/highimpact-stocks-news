@@ -20,7 +20,7 @@ export type SecFeedEntry = {
   accessionNumber: string;
 };
 
-export async function fetchRecentSecFilings(forms = SEC_PRIORITY_FORMS, perForm = 20): Promise<SecFeedEntry[]> {
+export async function fetchRecentSecFilings(forms: readonly string[] = SEC_PRIORITY_FORMS, perForm = 20): Promise<SecFeedEntry[]> {
   const entries: SecFeedEntry[] = [];
   for (const form of forms) {
     const url = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=${encodeURIComponent(form)}&owner=include&count=${perForm}&output=atom`;
@@ -55,12 +55,17 @@ type EftsResponse = {
   };
 };
 
-export async function fetchTodaysPriorityFilings(day = formatInTimeZone(new Date(), DISPLAY_TZ, "yyyy-MM-dd")): Promise<SecFeedEntry[]> {
+export async function fetchTodaysPriorityFilings(
+  day = formatInTimeZone(new Date(), DISPLAY_TZ, "yyyy-MM-dd"),
+  opts?: { includeForm4?: boolean },
+): Promise<SecFeedEntry[]> {
   const groups: Array<{ forms: string[]; size: number }> = [
     { forms: ["8-K", "8-K/A", "6-K", "10-Q"], size: 80 },
     { forms: ["424B5", "S-3"], size: 40 },
-    { forms: ["4"], size: 40 },
   ];
+  if (opts?.includeForm4 !== false) {
+    groups.push({ forms: ["4"], size: 40 });
+  }
   const out: SecFeedEntry[] = [];
   for (const group of groups) {
     out.push(...(await fetchEftsDay(day, group.forms, group.size)));

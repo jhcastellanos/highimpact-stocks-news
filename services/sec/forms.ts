@@ -14,6 +14,9 @@ const PRIORITY_FORMS = [
   "4",
 ] as const;
 
+/** 8-K / earnings / offerings — skip Form 4 noise on the live poll. */
+export const SEC_CATALYST_FORMS: readonly string[] = PRIORITY_FORMS.filter((f) => f !== "4" && !f.startsWith("SC 13G"));
+
 export type PriorityForm = (typeof PRIORITY_FORMS)[number];
 
 export const SEC_PRIORITY_FORMS: readonly string[] = PRIORITY_FORMS;
