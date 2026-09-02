@@ -29,6 +29,7 @@ function ShellBody({ children }: { children: React.ReactNode }) {
   ];
 
   useEffect(() => {
+    fetch("/api/device").catch(() => undefined);
     startSourcePolling();
   }, []);
 

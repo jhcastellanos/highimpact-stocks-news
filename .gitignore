@@ -36,3 +36,4 @@ out/
 
 # Drizzle
 database/migrations/meta
+.env*.local
