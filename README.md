@@ -76,7 +76,7 @@ Ingest from the CLI:
 npm run ingest:sec
 ```
 
-Vercel Cron hits `/api/cron/ingest` every 5 minutes. Set `CRON_SECRET` and send `Authorization: Bearer $CRON_SECRET`.
+Vercel Cron hits `/api/cron/ingest` once a day at 12:00 UTC (8:00 AM ET). While the app is open it also polls SEC every 30 seconds. Set `CRON_SECRET` and send `Authorization: Bearer $CRON_SECRET`.
 
 ## Rules the product will not break
 
