@@ -44,7 +44,6 @@ function ShellBody({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex flex-col items-end gap-2">
               <LanguageToggle />
-              <PushToggle />
               <RefreshButton />
             </div>
           </div>
@@ -64,6 +63,7 @@ function ShellBody({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
+          <PushToggle />
         </header>
       )}
       {children}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/frontend/i18n/LocaleProvider";
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -16,8 +16,7 @@ function urlBase64ToUint8Array(base64String: string) {
 function isIosSafari() {
   const ua = window.navigator.userAgent;
   const iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  const webkit = /WebKit/.test(ua);
-  return iOS && webkit;
+  return iOS && /WebKit/.test(ua) && !/CriOS|FxiOS/.test(ua);
 }
 
 function isStandalonePwa() {
@@ -32,18 +31,25 @@ export function PushToggle() {
   const [state, setState] = useState<"off" | "on" | "denied" | "missing" | "ios">("off");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const vapidKey = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window) || typeof Notification === "undefined") {
+    if (typeof Notification === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
       setState(isIosSafari() && !isStandalonePwa() ? "ios" : "missing");
       return;
     }
-    navigator.serviceWorker.register("/sw.js").catch(() => setState("missing"));
     if (Notification.permission === "denied") {
       setState("denied");
       return;
     }
-    navigator.serviceWorker.ready
+    void navigator.serviceWorker.register("/sw.js");
+    void fetch("/api/push/vapid", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((json: { publicKey?: string }) => {
+        if (json.publicKey) vapidKey.current = json.publicKey;
+      })
+      .catch(() => undefined);
+    void navigator.serviceWorker.ready
       .then((reg) => reg.pushManager.getSubscription())
       .then((sub) => {
         if (sub) setState("on");
@@ -56,27 +62,37 @@ export function PushToggle() {
     setBusy(true);
     try {
       if (isIosSafari() && !isStandalonePwa()) {
+        window.alert(t("alertsNeedPwa"));
         setState("ios");
         return;
       }
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      if (typeof Notification === "undefined") {
+        window.alert(t("alertsUnavailable"));
         setState("missing");
+        return;
+      }
+
+      // Must run in the same turn as the click. Any await before this
+      // makes Chrome/Safari skip the permission prompt.
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") {
+        setState("denied");
+        window.alert(t("notificationsBlocked"));
         return;
       }
 
       await fetch("/api/device").catch(() => undefined);
 
-      const keyRes = await fetch("/api/push/vapid", { cache: "no-store" });
-      const keyJson = (await keyRes.json()) as { publicKey?: string; error?: string };
-      const key = keyJson.publicKey;
-      if (!keyRes.ok || !key) {
-        setError(t("alertsFailed"));
-        return;
+      let key = vapidKey.current;
+      if (!key) {
+        const keyRes = await fetch("/api/push/vapid", { cache: "no-store" });
+        const keyJson = (await keyRes.json()) as { publicKey?: string };
+        key = keyJson.publicKey ?? null;
+        vapidKey.current = key;
       }
-
-      const perm = await Notification.requestPermission();
-      if (perm !== "granted") {
-        setState("denied");
+      if (!key) {
+        setError(t("alertsFailed"));
+        window.alert(t("alertsFailed"));
         return;
       }
 
@@ -101,20 +117,20 @@ export function PushToggle() {
       });
       if (!save.ok) {
         setError(t("alertsFailed"));
+        window.alert(t("alertsFailed"));
         return;
       }
 
       setState("on");
-      try {
-        await new Notification("Market Impact", {
-          body: t("alertsOn"),
-          icon: "/icons/192",
-        });
-      } catch {
-        /* permission granted but some browsers block the constructor */
-      }
+      await reg.showNotification("Market Impact", {
+        body: t("alertsOn"),
+        icon: "/icons/192",
+        badge: "/icons/192",
+      });
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("alertsFailed"));
+      const message = e instanceof Error ? e.message : t("alertsFailed");
+      setError(message);
+      window.alert(message);
     } finally {
       setBusy(false);
     }
@@ -122,32 +138,42 @@ export function PushToggle() {
 
   if (state === "on") {
     return (
-      <span className="rounded-full border border-accent/40 bg-accent/15 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-accent">
+      <div className="rounded-xl border border-accent/40 bg-accent/15 px-4 py-3 text-center font-mono text-xs uppercase tracking-widest text-accent">
         {t("alertsOn")}
-      </span>
+      </div>
     );
   }
   if (state === "denied") {
-    return <span className="font-mono text-[10px] uppercase tracking-widest text-neg">{t("notificationsBlocked")}</span>;
+    return (
+      <div className="rounded-xl border border-neg/40 bg-neg/10 px-4 py-3 text-center font-mono text-xs uppercase tracking-widest text-neg">
+        {t("notificationsBlocked")}
+      </div>
+    );
   }
   if (state === "ios") {
-    return <span className="max-w-[11rem] text-right font-mono text-[10px] leading-snug text-mute">{t("alertsNeedPwa")}</span>;
+    return (
+      <div className="rounded-xl border border-line bg-panel px-4 py-3 text-center text-sm text-mute">{t("alertsNeedPwa")}</div>
+    );
   }
   if (state === "missing") {
-    return <span className="font-mono text-[10px] uppercase tracking-widest text-mute">{t("alertsUnavailable")}</span>;
+    return (
+      <div className="rounded-xl border border-line bg-panel px-4 py-3 text-center font-mono text-xs uppercase tracking-widest text-mute">
+        {t("alertsUnavailable")}
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="space-y-2">
       <button
         type="button"
         onClick={() => void enable()}
         disabled={busy}
-        className="rounded-full border border-accent/40 bg-accent/15 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-accent disabled:opacity-50"
+        className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-semibold tracking-wide text-white disabled:opacity-50"
       >
         {busy ? t("enablingAlerts") : t("enableAlerts")}
       </button>
-      {error ? <span className="max-w-[12rem] text-right font-mono text-[10px] leading-snug text-neg">{error}</span> : null}
+      {error ? <p className="text-center text-sm text-neg">{error}</p> : null}
     </div>
   );
 }
