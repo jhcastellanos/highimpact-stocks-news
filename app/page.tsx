@@ -5,7 +5,7 @@ import { NewsFeed } from "@/frontend/components/NewsFeed";
 export default function LivePage() {
   return (
     <Suspense fallback={<LoadingLabel />}>
-      <NewsFeed />
+      <NewsFeed maxAgeHours={12} />
     </Suspense>
   );
 }

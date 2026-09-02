@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const sp = request.nextUrl.searchParams;
-    const filters: NewsFilters & { limit?: number; today?: boolean } = {
+    const filters: NewsFilters & { limit?: number; today?: boolean; maxAgeHours?: number } = {
       minScore: sp.get("minScore") ? Number(sp.get("minScore")) : undefined,
       sentiment: (sp.get("sentiment") as NewsFilters["sentiment"]) || "ALL",
       marketCap: (sp.get("marketCap") as NewsFilters["marketCap"]) || undefined,
@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
       source: (sp.get("source") as NewsFilters["source"]) || undefined,
       date: sp.get("date") || undefined,
       today: sp.get("today") === "1",
+      maxAgeHours: sp.get("maxAgeHours") ? Number(sp.get("maxAgeHours")) : undefined,
       limit: sp.get("limit") ? Number(sp.get("limit")) : 80,
     };
     const items = await queryNews(filters);

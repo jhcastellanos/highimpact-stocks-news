@@ -28,7 +28,7 @@ export type NewsCard = {
   watchlist: boolean;
 };
 
-export async function queryNews(filters: NewsFilters & { limit?: number; today?: boolean } = {}) {
+export async function queryNews(filters: NewsFilters & { limit?: number; today?: boolean; maxAgeHours?: number } = {}) {
   const db = getDb();
   const limit = filters.limit ?? 80;
 
@@ -40,6 +40,9 @@ export async function queryNews(filters: NewsFilters & { limit?: number; today?:
     conditions.push(inArray(schema.events.eventType, EVENT_GROUPS[filters.eventGroup]));
   }
   if (filters.today) conditions.push(gte(schema.news.publishedAt, startOfEtDay()));
+  if (filters.maxAgeHours && filters.maxAgeHours > 0) {
+    conditions.push(gte(schema.news.publishedAt, new Date(Date.now() - filters.maxAgeHours * 60 * 60 * 1000)));
+  }
   if (filters.date) {
     const start = new Date(`${filters.date}T00:00:00-05:00`);
     const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);

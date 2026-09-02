@@ -9,9 +9,11 @@ import { onRefresh } from "@/frontend/lib/refresh";
 
 export function NewsFeed({
   today = false,
+  maxAgeHours,
   watchlistTickers,
 }: {
   today?: boolean;
+  maxAgeHours?: number;
   watchlistTickers?: string[];
 }) {
   const { t } = useI18n();
@@ -22,10 +24,11 @@ export function NewsFeed({
   const qs = useMemo(() => {
     const p = new URLSearchParams();
     if (today) p.set("today", "1");
+    if (maxAgeHours) p.set("maxAgeHours", String(maxAgeHours));
     p.set("sentiment", "STRONGLY_POSITIVE");
     p.set("minScore", "70");
     return p.toString();
-  }, [today]);
+  }, [today, maxAgeHours]);
 
   useEffect(() => {
     let alive = true;
@@ -57,11 +60,14 @@ export function NewsFeed({
   }, [qs, t]);
 
   const visible = useMemo(() => {
+    const cutoff = maxAgeHours ? Date.now() - maxAgeHours * 60 * 60 * 1000 : 0;
     const list = watchlistTickers
       ? items.filter((i) => i.ticker && watchlistTickers.includes(i.ticker))
       : items;
-    return [...list].sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
-  }, [items, watchlistTickers]);
+    return [...list]
+      .filter((i) => !cutoff || Date.parse(i.publishedAt) >= cutoff)
+      .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
+  }, [items, watchlistTickers, maxAgeHours]);
 
   const { texts: headlines, pending } = useTranslatedTexts(visible.map((item) => item.headline));
 
@@ -73,7 +79,9 @@ export function NewsFeed({
       {loading && !visible.length ? <div className="text-sm text-mute">{t("loading")}</div> : null}
       {pending && visible.length ? <div className="text-xs font-mono uppercase tracking-widest text-mute">{t("translating")}</div> : null}
       {!loading && !error && !visible.length ? (
-        <div className="rounded-xl border border-line bg-panel p-5 text-sm text-mute">{t("emptyFeed")}</div>
+        <div className="rounded-xl border border-line bg-panel p-5 text-sm text-mute">
+          {t(maxAgeHours ? "emptyLive" : "emptyFeed")}
+        </div>
       ) : null}
       {visible.map((item, i) => (
         <NewsCardView key={item.id} item={item} headline={headlines[i]} />
