@@ -1,0 +1,30 @@
+# Secrets and local env
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+
+# OS and editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Deploy
+.vercel
